@@ -1,0 +1,21 @@
+[Unit]
+Description=RelayAgentGo
+Documentation=https://example.local/relay-agent
+After=network-online.target zerotier-one.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+EnvironmentFile=-/etc/relay-agent/relay-agent.env
+ExecStart=/usr/local/bin/relay-agent
+Restart=always
+RestartSec=5s
+RuntimeDirectory=relay-agent
+StateDirectory=relay-agent
+LogsDirectory=relay-agent
+NoNewPrivileges=false
+
+[Install]
+WantedBy=multi-user.target

@@ -5,6 +5,7 @@
 ## 当前文档
 
 - [RelayAgentGo 技术方案与开发步骤](docs/relay-agent-implementation-plan.md)
+- [中继知识学习](docs/中继知识学习.md)
 
 ## 核心链路
 
@@ -21,3 +22,22 @@ RelayAgentGo
 
 建议先按文档的第 0 到第 5 阶段实现 agent 本体闭环，再改造 `OwnZeroTierController` 增加 relay 注册、心跳和配置下发接口。
 
+## 本地运行骨架
+
+先准备配置文件：
+
+```bash
+cp deploy/relay-agent.env.example relay-agent.env
+```
+
+运行：
+
+```bash
+RELAY_AGENT_CONFIG=relay-agent.env go run ./cmd/relay-agent
+```
+
+测试：
+
+```bash
+go test ./...
+```

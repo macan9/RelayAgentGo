@@ -320,6 +320,43 @@ chain postrouting {
 - `internal/config`
 - `deploy/relay-agent.service`
 
+阶段 0 约定：
+
+- 模块名：`relay-agent-go`。
+- 配置优先级：环境变量优先，`RELAY_AGENT_CONFIG` 指定的 env 文件作为默认值来源。
+- 默认配置文件：`/etc/relay-agent/relay-agent.env`。
+- 配置文件格式：每行一个 `KEY=VALUE`，支持 `#` 注释和空行。
+- 第一版入口只负责加载配置、初始化 JSON 日志、打印启动摘要并响应 `SIGTERM` / `Ctrl+C`。
+- 真实注册、心跳和网络配置能力从第 1 阶段开始接入。
+
+阶段 0 必填配置：
+
+```env
+CONTROLLER_BASE_URL=https://controller.example.com
+CONTROLLER_TOKEN=change-me
+ZT_NETWORK_ID=8056c2e21c000001
+RELAY_NAME=relay-01
+```
+
+阶段 0 可选配置：
+
+```env
+LOG_LEVEL=info
+STATE_PATH=/var/lib/relay-agent/state.json
+HEARTBEAT_INTERVAL_SECONDS=30
+HTTP_TIMEOUT_SECONDS=10
+DRY_RUN=false
+```
+
+阶段 0 验收命令：
+
+```bash
+go test ./...
+go run ./cmd/relay-agent
+```
+
+本地运行时可以先复制 `deploy/relay-agent.env.example`，再通过 `RELAY_AGENT_CONFIG` 指向该文件。
+
 ### 第 1 阶段：控制器联通
 
 - 实现 `controller.Client`。
@@ -459,4 +496,3 @@ chain postrouting {
 ```
 
 这样可以先用 mock 配置验证本机网络落地能力，再接入控制器，降低联调复杂度。
-
