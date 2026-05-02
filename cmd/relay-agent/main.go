@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"relay-agent-go/internal/buildinfo"
+	"relay-agent-go/internal/collector"
 	"relay-agent-go/internal/config"
 	"relay-agent-go/internal/controller"
 )
@@ -38,13 +39,23 @@ func main() {
 	}
 	_ = controllerClient
 
+	metricsCollector := collector.New(collector.Config{
+		ZTInterfacePrefix: cfg.ZTInterfacePrefix,
+		PublicIPProbeURL:  cfg.PublicIPProbeURL,
+		LatencyProbeURL:   cfg.LatencyProbeURL,
+	})
+	_ = metricsCollector
+
 	logger.Info(
 		"relay agent starting",
 		"version", buildinfo.Version,
 		"commit", buildinfo.Commit,
 		"controllerBaseURL", cfg.ControllerBaseURL,
 		"ztNetworkId", cfg.ZTNetworkID,
+		"ztInterfacePrefix", cfg.ZTInterfacePrefix,
 		"relayName", cfg.RelayName,
+		"publicIPProbeURL", cfg.PublicIPProbeURL,
+		"latencyProbeURL", cfg.LatencyProbeURL,
 		"heartbeatInterval", cfg.HeartbeatInterval.String(),
 		"httpTimeout", cfg.HTTPTimeout.String(),
 		"controllerRetryMax", cfg.ControllerRetryMax,

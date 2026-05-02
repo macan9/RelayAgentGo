@@ -17,16 +17,20 @@ const (
 	defaultRetryMax          = 2
 	defaultRetryWait         = 200 * time.Millisecond
 	defaultStatePath         = "/var/lib/relay-agent/state.json"
+	defaultZTInterfacePrefix = "zt"
 )
 
 type Config struct {
 	ControllerBaseURL   string
 	ControllerToken     string
 	ZTNetworkID         string
+	ZTInterfacePrefix   string
 	RelayName           string
 	LogLevel            string
 	ConfigPath          string
 	StatePath           string
+	PublicIPProbeURL    string
+	LatencyProbeURL     string
 	HeartbeatInterval   time.Duration
 	HTTPTimeout         time.Duration
 	ControllerRetryMax  int
@@ -38,6 +42,7 @@ func Load() (Config, error) {
 	cfg := Config{
 		ConfigPath:          envString("RELAY_AGENT_CONFIG", defaultConfigPath),
 		StatePath:           envString("STATE_PATH", defaultStatePath),
+		ZTInterfacePrefix:   envString("ZT_INTERFACE_PREFIX", defaultZTInterfacePrefix),
 		LogLevel:            strings.ToLower(envString("LOG_LEVEL", "info")),
 		HeartbeatInterval:   envDuration("HEARTBEAT_INTERVAL_SECONDS", defaultHeartbeatInterval),
 		HTTPTimeout:         envDuration("HTTP_TIMEOUT_SECONDS", defaultHTTPTimeout),
@@ -53,8 +58,11 @@ func Load() (Config, error) {
 	cfg.ControllerBaseURL = strings.TrimRight(envString("CONTROLLER_BASE_URL", cfg.ControllerBaseURL), "/")
 	cfg.ControllerToken = envString("CONTROLLER_TOKEN", cfg.ControllerToken)
 	cfg.ZTNetworkID = envString("ZT_NETWORK_ID", cfg.ZTNetworkID)
+	cfg.ZTInterfacePrefix = envString("ZT_INTERFACE_PREFIX", cfg.ZTInterfacePrefix)
 	cfg.RelayName = envString("RELAY_NAME", cfg.RelayName)
 	cfg.StatePath = envString("STATE_PATH", cfg.StatePath)
+	cfg.PublicIPProbeURL = envString("PUBLIC_IP_PROBE_URL", cfg.PublicIPProbeURL)
+	cfg.LatencyProbeURL = envString("LATENCY_PROBE_URL", cfg.LatencyProbeURL)
 	cfg.LogLevel = strings.ToLower(envString("LOG_LEVEL", cfg.LogLevel))
 	cfg.HeartbeatInterval = envDuration("HEARTBEAT_INTERVAL_SECONDS", cfg.HeartbeatInterval)
 	cfg.HTTPTimeout = envDuration("HTTP_TIMEOUT_SECONDS", cfg.HTTPTimeout)
@@ -103,6 +111,19 @@ func (cfg Config) Validate() error {
 	if cfg.ControllerRetryWait < 0 {
 		return errors.New("CONTROLLER_RETRY_WAIT_MS must be greater than or equal to 0")
 	}
+	if cfg.ZTInterfacePrefix == "" {
+		return errors.New("ZT_INTERFACE_PREFIX must not be empty")
+	}
+	if cfg.PublicIPProbeURL != "" {
+		if err := validateAbsoluteURL("PUBLIC_IP_PROBE_URL", cfg.PublicIPProbeURL); err != nil {
+			return err
+		}
+	}
+	if cfg.LatencyProbeURL != "" {
+		if err := validateAbsoluteURL("LATENCY_PROBE_URL", cfg.LatencyProbeURL); err != nil {
+			return err
+		}
+	}
 
 	switch cfg.LogLevel {
 	case "debug", "info", "warn", "error":
@@ -110,6 +131,14 @@ func (cfg Config) Validate() error {
 		return fmt.Errorf("LOG_LEVEL must be one of debug, info, warn, error")
 	}
 
+	return nil
+}
+
+func validateAbsoluteURL(name string, rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("%s must be an absolute URL", name)
+	}
 	return nil
 }
 

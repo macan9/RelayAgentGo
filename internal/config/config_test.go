@@ -13,7 +13,10 @@ func TestLoadFromEnvFile(t *testing.T) {
 CONTROLLER_BASE_URL=https://controller.example.com/
 CONTROLLER_TOKEN=test-token
 ZT_NETWORK_ID=8056c2e21c000001
+ZT_INTERFACE_PREFIX=zt
 RELAY_NAME=relay-01
+PUBLIC_IP_PROBE_URL=https://public-ip.example.com
+LATENCY_PROBE_URL=https://latency.example.com/ping
 HEARTBEAT_INTERVAL_SECONDS=15
 HTTP_TIMEOUT_SECONDS=3
 CONTROLLER_RETRY_MAX=4
@@ -37,6 +40,12 @@ DRY_RUN=true
 	}
 	if !cfg.DryRun {
 		t.Fatal("expected dry-run to be enabled")
+	}
+	if cfg.PublicIPProbeURL != "https://public-ip.example.com" {
+		t.Fatalf("unexpected public ip probe URL: %s", cfg.PublicIPProbeURL)
+	}
+	if cfg.LatencyProbeURL != "https://latency.example.com/ping" {
+		t.Fatalf("unexpected latency probe URL: %s", cfg.LatencyProbeURL)
 	}
 	if cfg.ControllerRetryMax != 4 {
 		t.Fatalf("unexpected retry max: %d", cfg.ControllerRetryMax)

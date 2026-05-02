@@ -432,6 +432,9 @@ RELAY_NAME=relay-01
 ```env
 LOG_LEVEL=info
 STATE_PATH=/var/lib/relay-agent/state.json
+ZT_INTERFACE_PREFIX=zt
+PUBLIC_IP_PROBE_URL=
+LATENCY_PROBE_URL=
 HEARTBEAT_INTERVAL_SECONDS=30
 HTTP_TIMEOUT_SECONDS=10
 CONTROLLER_RETRY_MAX=2
@@ -487,6 +490,31 @@ go test ./...
 
 - `internal/collector`
 - 心跳 payload 单元测试。
+
+阶段 2 约定：
+
+- ZeroTier 网卡按接口名前缀识别，默认前缀为 `zt`，可通过 `ZT_INTERFACE_PREFIX` 调整。
+- 公网 IP 通过 `PUBLIC_IP_PROBE_URL` 探测；未配置时允许为空，不阻塞 agent 启动。
+- 延迟通过 `LATENCY_PROBE_URL` 发起 HTTP `HEAD` 探测；未配置时上报 `-1`。
+- load、内存和 CPU 默认读取 Linux `/proc/loadavg`、`/proc/meminfo`、`/proc/stat`。
+- CPU 百分比基于两次 `/proc/stat` 的增量计算，因此第一次采样为 `0`。
+- ZeroTier 网卡收发字节默认读取 `/sys/class/net/<iface>/statistics/{rx_bytes,tx_bytes}`。
+- 采集失败的非关键指标使用保守默认值，不影响整体快照生成；公网 IP 格式非法会返回错误，避免上报脏数据。
+- `internal/collector` 提供 `RegisterRequest` 和 `HeartbeatRequest` 构造方法，供后续主循环直接生成控制器 payload。
+
+阶段 2 新增配置：
+
+```env
+ZT_INTERFACE_PREFIX=zt
+PUBLIC_IP_PROBE_URL=
+LATENCY_PROBE_URL=
+```
+
+阶段 2 验收命令：
+
+```bash
+go test ./...
+```
 
 ### 第 3 阶段：注册与心跳主循环
 

@@ -43,3 +43,5 @@ go test ./...
 ```
 
 当前入口会初始化 `OwnZeroTierController` 客户端，支持 Bearer Token、HTTP 超时和重试配置；真实注册和心跳主循环会在后续阶段接入。
+
+第 2 阶段已加入本机采集器，能采集 hostname、ZeroTier 网卡 IP、公网 IP 探测、load、内存、CPU 增量、网卡收发字节和延迟探测；后续心跳主循环会复用这些采集结果。
