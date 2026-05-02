@@ -12,6 +12,7 @@ import (
 type State struct {
 	RelayID            string    `json:"relayId,omitempty"`
 	NodeID             string    `json:"nodeId,omitempty"`
+	ZTNetworkID        string    `json:"ztNetworkId,omitempty"`
 	ConfigVersion      int64     `json:"configVersion"`
 	NFTApplied         bool      `json:"nftApplied"`
 	RouteApplied       bool      `json:"routeApplied"`

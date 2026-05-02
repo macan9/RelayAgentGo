@@ -21,6 +21,7 @@ func TestRunRegistersAndPersistsState(t *testing.T) {
 		registerResponse: controller.RegisterResponse{
 			RelayID:       "relay-1",
 			NodeID:        "node-1",
+			ZTNetworkID:   "8056c2e21c000001",
 			ConfigVersion: 7,
 		},
 	}
@@ -49,7 +50,7 @@ func TestRunRegistersAndPersistsState(t *testing.T) {
 		t.Fatalf("expected relay name as initial node id, got %s", controllerClient.registerRequest.NodeID)
 	}
 	current := store.current()
-	if current.NodeID != "node-1" || current.RelayID != "relay-1" || current.ConfigVersion != 7 {
+	if current.NodeID != "node-1" || current.RelayID != "relay-1" || current.ZTNetworkID != "8056c2e21c000001" || current.ConfigVersion != 7 {
 		t.Fatalf("unexpected state: %+v", current)
 	}
 }

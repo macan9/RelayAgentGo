@@ -12,7 +12,6 @@ func TestLoadFromEnvFile(t *testing.T) {
 	content := []byte(`
 CONTROLLER_BASE_URL=https://controller.example.com/
 CONTROLLER_TOKEN=test-token
-ZT_NETWORK_ID=8056c2e21c000001
 ZT_INTERFACE_PREFIX=zt
 RELAY_NAME=relay-01
 PUBLIC_IP_PROBE_URL=https://public-ip.example.com

@@ -85,9 +85,6 @@ func (cfg Config) Validate() error {
 	if cfg.ControllerToken == "" {
 		missing = append(missing, "CONTROLLER_TOKEN")
 	}
-	if cfg.ZTNetworkID == "" {
-		missing = append(missing, "ZT_NETWORK_ID")
-	}
 	if cfg.RelayName == "" {
 		missing = append(missing, "RELAY_NAME")
 	}

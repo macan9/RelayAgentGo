@@ -51,3 +51,17 @@ go test ./...
 第 4 阶段已加入 `netops` 网络操作封装，覆盖 `sysctl`、`ip route` 和 `nftables` 命令生成，并支持 dry-run 测试。
 
 第 5 阶段已加入 `reconciler`：心跳发现新配置后会校验配置，按 `sysctl -> nftables -> ip route` 顺序应用，并向控制器上报应用结果。`DRY_RUN=true` 时只生成命令，不修改本机网络。
+
+## 线上联调模板
+
+已提供面向 `139.196.158.225:8080` 的配置模板：
+
+```bash
+cp deploy/relay-agent.online.env.example relay-agent.online.env
+```
+
+补充 `CONTROLLER_TOKEN`，按需调整 `RELAY_NAME` 后运行。`ZT_NETWORK_ID` 可以留空，由 controller 注册响应返回。
+
+```bash
+RELAY_AGENT_CONFIG=relay-agent.online.env go run ./cmd/relay-agent
+```

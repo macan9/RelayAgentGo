@@ -3,7 +3,7 @@ package controller
 type RegisterRequest struct {
 	NodeID      string            `json:"nodeId,omitempty"`
 	Hostname    string            `json:"hostname"`
-	ZTNetworkID string            `json:"ztNetworkId"`
+	ZTNetworkID string            `json:"ztNetworkId,omitempty"`
 	ZTIPs       []string          `json:"ztIps,omitempty"`
 	PublicIP    string            `json:"publicIp,omitempty"`
 	Version     string            `json:"version"`
@@ -13,6 +13,7 @@ type RegisterRequest struct {
 type RegisterResponse struct {
 	RelayID                  string `json:"relayId"`
 	NodeID                   string `json:"nodeId"`
+	ZTNetworkID              string `json:"ztNetworkId"`
 	ConfigVersion            int64  `json:"configVersion"`
 	HeartbeatIntervalSeconds int    `json:"heartbeatIntervalSeconds"`
 }

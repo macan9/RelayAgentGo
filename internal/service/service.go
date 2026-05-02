@@ -114,7 +114,12 @@ func (service *Service) register(ctx context.Context, current state.State) (stat
 		return current, fmt.Errorf("collect register snapshot: %w", err)
 	}
 
-	request := snapshot.RegisterRequest(service.config.ZTNetworkID, service.config.Version, service.config.Labels)
+	ztNetworkID := service.config.ZTNetworkID
+	if current.ZTNetworkID != "" {
+		ztNetworkID = current.ZTNetworkID
+	}
+
+	request := snapshot.RegisterRequest(ztNetworkID, service.config.Version, service.config.Labels)
 	if current.NodeID != "" {
 		request.NodeID = current.NodeID
 	} else if service.config.RelayName != "" {
@@ -132,8 +137,12 @@ func (service *Service) register(ctx context.Context, current state.State) (stat
 	now := time.Now().UTC()
 	current.RelayID = response.RelayID
 	current.NodeID = response.NodeID
+	current.ZTNetworkID = response.ZTNetworkID
 	if current.NodeID == "" {
 		current.NodeID = request.NodeID
+	}
+	if current.ZTNetworkID == "" {
+		current.ZTNetworkID = request.ZTNetworkID
 	}
 	current.ConfigVersion = response.ConfigVersion
 	current.LastRegisterAt = now
@@ -143,6 +152,7 @@ func (service *Service) register(ctx context.Context, current state.State) (stat
 		"relay registered",
 		"relayId", current.RelayID,
 		"nodeId", current.NodeID,
+		"ztNetworkId", current.ZTNetworkID,
 		"configVersion", current.ConfigVersion,
 	)
 

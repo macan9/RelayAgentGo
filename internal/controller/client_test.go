@@ -32,6 +32,7 @@ func TestRegisterSendsBearerTokenAndDecodesResponse(t *testing.T) {
 		writeJSON(t, w, RegisterResponse{
 			RelayID:                  "relay-1",
 			NodeID:                   "node-1",
+			ZTNetworkID:              "8056c2e21c000001",
 			ConfigVersion:            7,
 			HeartbeatIntervalSeconds: 30,
 		})
@@ -52,7 +53,7 @@ func TestRegisterSendsBearerTokenAndDecodesResponse(t *testing.T) {
 		t.Fatalf("register: %v", err)
 	}
 
-	if response.NodeID != "node-1" || response.ConfigVersion != 7 {
+	if response.NodeID != "node-1" || response.ZTNetworkID != "8056c2e21c000001" || response.ConfigVersion != 7 {
 		t.Fatalf("unexpected response: %+v", response)
 	}
 }

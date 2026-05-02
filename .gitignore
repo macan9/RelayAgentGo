@@ -1,0 +1,30 @@
+.env
+.env.*
+!.env.example
+*- OwnZeroTierController.env
+*.log
+*.out
+*.err
+*.pid
+
+# Go build outputs
+bin/
+dist/
+tmp/
+coverage.out
+*.test
+*.exe
+*.dll
+*.so
+*.dylib
+controller-api
+controller-migrate
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Git and deployment noise
+node_modules/

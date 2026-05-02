@@ -423,7 +423,6 @@ chain postrouting {
 ```env
 CONTROLLER_BASE_URL=https://controller.example.com
 CONTROLLER_TOKEN=change-me
-ZT_NETWORK_ID=8056c2e21c000001
 RELAY_NAME=relay-01
 ```
 
@@ -432,6 +431,7 @@ RELAY_NAME=relay-01
 ```env
 LOG_LEVEL=info
 STATE_PATH=/var/lib/relay-agent/state.json
+ZT_NETWORK_ID=
 ZT_INTERFACE_PREFIX=zt
 PUBLIC_IP_PROBE_URL=
 LATENCY_PROBE_URL=
@@ -532,6 +532,7 @@ go test ./...
 
 - agent 启动后会先读取 `STATE_PATH`，缺失时使用默认状态。
 - 首次注册时优先使用已保存的 `nodeId`；如果本地没有 `nodeId`，使用 `RELAY_NAME` 作为初始 `nodeId` 发送给控制器。
+- `ZT_NETWORK_ID` 是可选覆盖项；为空时由控制器在注册响应里返回，并保存到本地 state。
 - 控制器注册响应中的 `nodeId` 是后续心跳的准身份，并会落盘保存。
 - 注册成功后立即保存 `relayId`、`nodeId`、`configVersion` 和 `lastRegisterAt`。
 - 心跳周期使用 `HEARTBEAT_INTERVAL_SECONDS`。
@@ -636,6 +637,23 @@ go test ./...
 - relay HTTP handler。
 - relay service/store。
 - API 文档更新。
+
+阶段 6 约定：
+
+- 控制器侧新增 `relays` 表保存 relay 最近注册、心跳、负载、网络指标和应用结果。
+- 控制器侧新增 `relay_configs` 表保存每个 relay 的目标配置和版本号。
+- `POST /api/relays/register` 首次注册时会自动生成默认配置，默认包含 `net.ipv4.ip_forward=1`。
+- `POST /api/relays/{nodeId}/heartbeat` 会根据上报的 runtime 与控制器当前配置版本返回 `hasNewConfig`。
+- `PATCH /api/relays/{nodeId}/config` 用于管理侧更新目标配置；当请求版本小于等于当前版本时，控制器自动递增版本。
+- `POST /api/relays/{nodeId}/config-apply-result` 保存最近一次配置应用结果。
+- relay 注册、配置更新、应用结果会写入审计日志。
+
+阶段 6 验收命令：
+
+```bash
+cd ../OwnZeroTierController
+go test ./...
+```
 
 ### 第 7 阶段：集成联调
 

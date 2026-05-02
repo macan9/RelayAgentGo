@@ -23,6 +23,7 @@ func TestSaveAndLoadState(t *testing.T) {
 	expected := State{
 		RelayID:       "relay-1",
 		NodeID:        "node-1",
+		ZTNetworkID:   "8056c2e21c000001",
 		ConfigVersion: 12,
 		NFTApplied:    false,
 		RouteApplied:  false,
@@ -35,7 +36,7 @@ func TestSaveAndLoadState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load state: %v", err)
 	}
-	if actual.RelayID != expected.RelayID || actual.NodeID != expected.NodeID || actual.ConfigVersion != expected.ConfigVersion {
+	if actual.RelayID != expected.RelayID || actual.NodeID != expected.NodeID || actual.ZTNetworkID != expected.ZTNetworkID || actual.ConfigVersion != expected.ConfigVersion {
 		t.Fatalf("unexpected state: %+v", actual)
 	}
 	if actual.UpdatedAt.IsZero() {
