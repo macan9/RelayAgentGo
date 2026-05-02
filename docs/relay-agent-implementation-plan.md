@@ -528,6 +528,23 @@ go test ./...
 - `internal/service`
 - `internal/state`
 
+阶段 3 约定：
+
+- agent 启动后会先读取 `STATE_PATH`，缺失时使用默认状态。
+- 首次注册时优先使用已保存的 `nodeId`；如果本地没有 `nodeId`，使用 `RELAY_NAME` 作为初始 `nodeId` 发送给控制器。
+- 控制器注册响应中的 `nodeId` 是后续心跳的准身份，并会落盘保存。
+- 注册成功后立即保存 `relayId`、`nodeId`、`configVersion` 和 `lastRegisterAt`。
+- 心跳周期使用 `HEARTBEAT_INTERVAL_SECONDS`。
+- 心跳发现 `hasNewConfig=true` 或控制器配置版本大于本地版本时，agent 会拉取最新配置。
+- 第 3 阶段只拉取并记录新配置版本，不应用本机网络配置；拉取到新版本后标记 `nftApplied=false`、`routeApplied=false`，等待第 5 阶段 reconcile。
+- `STATE_PATH` 写入采用临时文件 + rename，避免异常退出留下半截 JSON。
+
+阶段 3 验收命令：
+
+```bash
+go test ./...
+```
+
 ### 第 4 阶段：网络操作封装
 
 - 封装 `sysctl`。

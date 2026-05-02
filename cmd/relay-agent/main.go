@@ -11,6 +11,8 @@ import (
 	"relay-agent-go/internal/collector"
 	"relay-agent-go/internal/config"
 	"relay-agent-go/internal/controller"
+	"relay-agent-go/internal/service"
+	"relay-agent-go/internal/state"
 )
 
 func main() {
@@ -44,7 +46,13 @@ func main() {
 		PublicIPProbeURL:  cfg.PublicIPProbeURL,
 		LatencyProbeURL:   cfg.LatencyProbeURL,
 	})
-	_ = metricsCollector
+	stateStore := state.NewStore(cfg.StatePath)
+	agentService := service.New(service.Config{
+		ZTNetworkID:       cfg.ZTNetworkID,
+		RelayName:         cfg.RelayName,
+		Version:           buildinfo.Version,
+		HeartbeatInterval: cfg.HeartbeatInterval,
+	}, controllerClient, metricsCollector, stateStore, logger)
 
 	logger.Info(
 		"relay agent starting",
@@ -63,7 +71,10 @@ func main() {
 		"dryRun", cfg.DryRun,
 	)
 
-	<-ctx.Done()
+	if err := agentService.Run(ctx); err != nil {
+		logger.Error("relay agent stopped with error", "error", err)
+		os.Exit(1)
+	}
 	logger.Info("relay agent stopped")
 }
 
