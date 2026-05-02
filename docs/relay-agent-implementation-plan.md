@@ -183,17 +183,86 @@ GET  /api/relays
 GET  /api/relays/{nodeId}
 ```
 
+所有 relay-agent 接口统一使用：
+
+```http
+Authorization: Bearer <CONTROLLER_TOKEN>
+Accept: application/json
+Content-Type: application/json
+```
+
 ### 注册接口
 
 - 用途：agent 首次启动或身份变化时注册。
 - 输入：节点 ID、主机名、公网 IP、ZeroTier IP、版本、标签。
 - 输出：控制器分配的 relay ID、当前配置版本、心跳间隔。
 
+请求示例：
+
+```json
+{
+  "nodeId": "optional-agent-node-id",
+  "hostname": "relay-hk-01",
+  "ztNetworkId": "8056c2e21c000001",
+  "ztIps": ["10.147.17.20"],
+  "publicIp": "1.2.3.4",
+  "version": "0.1.0",
+  "labels": {
+    "region": "hk"
+  }
+}
+```
+
+响应示例：
+
+```json
+{
+  "relayId": "relay-1",
+  "nodeId": "relay-hk-01",
+  "configVersion": 12,
+  "heartbeatIntervalSeconds": 30
+}
+```
+
 ### 心跳接口
 
 - 用途：周期性上报运行状态。
 - 建议周期：10 到 30 秒。
 - 输出：是否有新配置、最新配置版本。
+
+请求示例：
+
+```json
+{
+  "nodeId": "relay-hk-01",
+  "publicIp": "1.2.3.4",
+  "ztIps": ["10.147.17.20"],
+  "load": {
+    "cpuPercent": 12.3,
+    "memoryPercent": 41.6,
+    "load1": 0.35
+  },
+  "network": {
+    "rxBytes": 123456,
+    "txBytes": 654321,
+    "latencyMs": 38
+  },
+  "runtime": {
+    "configVersion": 12,
+    "nftApplied": true,
+    "routeApplied": true
+  }
+}
+```
+
+响应示例：
+
+```json
+{
+  "configVersion": 13,
+  "hasNewConfig": true
+}
+```
 
 ### 配置拉取接口
 
@@ -204,6 +273,26 @@ GET  /api/relays/{nodeId}
 
 - 用途：agent 上报配置是否成功落地。
 - 字段：`version`、`success`、`message`、`changedRoutes`、`changedRules`。
+
+请求示例：
+
+```json
+{
+  "version": 13,
+  "success": true,
+  "message": "applied",
+  "changedRoutes": ["replace 10.20.0.0/24"],
+  "changedRules": ["masquerade zt-to-public"]
+}
+```
+
+响应示例：
+
+```json
+{
+  "accepted": true
+}
+```
 
 ## 7. RelayAgentGo 模块拆分
 
@@ -345,6 +434,8 @@ LOG_LEVEL=info
 STATE_PATH=/var/lib/relay-agent/state.json
 HEARTBEAT_INTERVAL_SECONDS=30
 HTTP_TIMEOUT_SECONDS=10
+CONTROLLER_RETRY_MAX=2
+CONTROLLER_RETRY_WAIT_MS=200
 DRY_RUN=false
 ```
 
@@ -368,6 +459,21 @@ go run ./cmd/relay-agent
 
 - `internal/controller`
 - 控制器接口 mock 测试。
+
+阶段 1 约定：
+
+- agent 侧先固定 `/api/relays/*` 客户端契约，控制器真实接口在第 6 阶段补齐。
+- HTTP `2xx` 视为成功，其余状态码包装为 `controller.APIError`，错误体最多读取 4KB。
+- `429` 和 `5xx` 自动重试，`4xx` 业务错误不重试。
+- 默认重试 2 次，默认重试等待 200ms。
+- 重试参数通过 `CONTROLLER_RETRY_MAX` 和 `CONTROLLER_RETRY_WAIT_MS` 配置。
+- 第 1 阶段入口只初始化 controller client，不主动访问控制器；真实注册主循环从第 3 阶段接入。
+
+阶段 1 验收命令：
+
+```bash
+go test ./...
+```
 
 ### 第 2 阶段：本机信息采集
 

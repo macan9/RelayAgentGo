@@ -14,30 +14,36 @@ const (
 	defaultConfigPath        = "/etc/relay-agent/relay-agent.env"
 	defaultHeartbeatInterval = 30 * time.Second
 	defaultHTTPTimeout       = 10 * time.Second
+	defaultRetryMax          = 2
+	defaultRetryWait         = 200 * time.Millisecond
 	defaultStatePath         = "/var/lib/relay-agent/state.json"
 )
 
 type Config struct {
-	ControllerBaseURL string
-	ControllerToken   string
-	ZTNetworkID       string
-	RelayName         string
-	LogLevel          string
-	ConfigPath        string
-	StatePath         string
-	HeartbeatInterval time.Duration
-	HTTPTimeout       time.Duration
-	DryRun            bool
+	ControllerBaseURL   string
+	ControllerToken     string
+	ZTNetworkID         string
+	RelayName           string
+	LogLevel            string
+	ConfigPath          string
+	StatePath           string
+	HeartbeatInterval   time.Duration
+	HTTPTimeout         time.Duration
+	ControllerRetryMax  int
+	ControllerRetryWait time.Duration
+	DryRun              bool
 }
 
 func Load() (Config, error) {
 	cfg := Config{
-		ConfigPath:        envString("RELAY_AGENT_CONFIG", defaultConfigPath),
-		StatePath:         envString("STATE_PATH", defaultStatePath),
-		LogLevel:          strings.ToLower(envString("LOG_LEVEL", "info")),
-		HeartbeatInterval: envDuration("HEARTBEAT_INTERVAL_SECONDS", defaultHeartbeatInterval),
-		HTTPTimeout:       envDuration("HTTP_TIMEOUT_SECONDS", defaultHTTPTimeout),
-		DryRun:            envBool("DRY_RUN", false),
+		ConfigPath:          envString("RELAY_AGENT_CONFIG", defaultConfigPath),
+		StatePath:           envString("STATE_PATH", defaultStatePath),
+		LogLevel:            strings.ToLower(envString("LOG_LEVEL", "info")),
+		HeartbeatInterval:   envDuration("HEARTBEAT_INTERVAL_SECONDS", defaultHeartbeatInterval),
+		HTTPTimeout:         envDuration("HTTP_TIMEOUT_SECONDS", defaultHTTPTimeout),
+		ControllerRetryMax:  envInt("CONTROLLER_RETRY_MAX", defaultRetryMax),
+		ControllerRetryWait: envDurationMS("CONTROLLER_RETRY_WAIT_MS", defaultRetryWait),
+		DryRun:              envBool("DRY_RUN", false),
 	}
 
 	if err := loadEnvFile(cfg.ConfigPath); err != nil {
@@ -52,6 +58,8 @@ func Load() (Config, error) {
 	cfg.LogLevel = strings.ToLower(envString("LOG_LEVEL", cfg.LogLevel))
 	cfg.HeartbeatInterval = envDuration("HEARTBEAT_INTERVAL_SECONDS", cfg.HeartbeatInterval)
 	cfg.HTTPTimeout = envDuration("HTTP_TIMEOUT_SECONDS", cfg.HTTPTimeout)
+	cfg.ControllerRetryMax = envInt("CONTROLLER_RETRY_MAX", cfg.ControllerRetryMax)
+	cfg.ControllerRetryWait = envDurationMS("CONTROLLER_RETRY_WAIT_MS", cfg.ControllerRetryWait)
 	cfg.DryRun = envBool("DRY_RUN", cfg.DryRun)
 
 	if err := cfg.Validate(); err != nil {
@@ -88,6 +96,12 @@ func (cfg Config) Validate() error {
 	}
 	if cfg.HTTPTimeout <= 0 {
 		return errors.New("HTTP_TIMEOUT_SECONDS must be greater than 0")
+	}
+	if cfg.ControllerRetryMax < 0 {
+		return errors.New("CONTROLLER_RETRY_MAX must be greater than or equal to 0")
+	}
+	if cfg.ControllerRetryWait < 0 {
+		return errors.New("CONTROLLER_RETRY_WAIT_MS must be greater than or equal to 0")
 	}
 
 	switch cfg.LogLevel {
@@ -158,6 +172,32 @@ func envDuration(key string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 	return time.Duration(seconds) * time.Second
+}
+
+func envDurationMS(key string, fallback time.Duration) time.Duration {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+
+	milliseconds, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return time.Duration(milliseconds) * time.Millisecond
+}
+
+func envInt(key string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }
 
 func envBool(key string, fallback bool) bool {

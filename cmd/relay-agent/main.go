@@ -9,6 +9,7 @@ import (
 
 	"relay-agent-go/internal/buildinfo"
 	"relay-agent-go/internal/config"
+	"relay-agent-go/internal/controller"
 )
 
 func main() {
@@ -24,6 +25,19 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	controllerClient, err := controller.NewClient(
+		cfg.ControllerBaseURL,
+		cfg.ControllerToken,
+		cfg.HTTPTimeout,
+		controller.WithLogger(logger),
+		controller.WithRetry(cfg.ControllerRetryMax, cfg.ControllerRetryWait),
+	)
+	if err != nil {
+		logger.Error("failed to initialize controller client", "error", err)
+		os.Exit(1)
+	}
+	_ = controllerClient
+
 	logger.Info(
 		"relay agent starting",
 		"version", buildinfo.Version,
@@ -32,6 +46,9 @@ func main() {
 		"ztNetworkId", cfg.ZTNetworkID,
 		"relayName", cfg.RelayName,
 		"heartbeatInterval", cfg.HeartbeatInterval.String(),
+		"httpTimeout", cfg.HTTPTimeout.String(),
+		"controllerRetryMax", cfg.ControllerRetryMax,
+		"controllerRetryWait", cfg.ControllerRetryWait.String(),
 		"dryRun", cfg.DryRun,
 	)
 

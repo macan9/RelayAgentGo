@@ -16,6 +16,8 @@ ZT_NETWORK_ID=8056c2e21c000001
 RELAY_NAME=relay-01
 HEARTBEAT_INTERVAL_SECONDS=15
 HTTP_TIMEOUT_SECONDS=3
+CONTROLLER_RETRY_MAX=4
+CONTROLLER_RETRY_WAIT_MS=50
 DRY_RUN=true
 `)
 	if err := os.WriteFile(configPath, content, 0o600); err != nil {
@@ -35,6 +37,12 @@ DRY_RUN=true
 	}
 	if !cfg.DryRun {
 		t.Fatal("expected dry-run to be enabled")
+	}
+	if cfg.ControllerRetryMax != 4 {
+		t.Fatalf("unexpected retry max: %d", cfg.ControllerRetryMax)
+	}
+	if cfg.ControllerRetryWait.String() != "50ms" {
+		t.Fatalf("unexpected retry wait: %s", cfg.ControllerRetryWait)
 	}
 }
 

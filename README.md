@@ -41,3 +41,5 @@ RELAY_AGENT_CONFIG=relay-agent.env go run ./cmd/relay-agent
 ```bash
 go test ./...
 ```
+
+当前入口会初始化 `OwnZeroTierController` 客户端，支持 Bearer Token、HTTP 超时和重试配置；真实注册和心跳主循环会在后续阶段接入。
