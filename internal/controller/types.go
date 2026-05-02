@@ -67,6 +67,7 @@ type NATConfig struct {
 	Name         string `json:"name"`
 	Type         string `json:"type"`
 	Family       string `json:"family"`
+	Table        string `json:"table,omitempty"`
 	Src          string `json:"src,omitempty"`
 	Dst          string `json:"dst,omitempty"`
 	InInterface  string `json:"inInterface,omitempty"`

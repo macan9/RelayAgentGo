@@ -47,3 +47,7 @@ go test ./...
 第 2 阶段已加入本机采集器，能采集 hostname、ZeroTier 网卡 IP、公网 IP 探测、load、内存、CPU 增量、网卡收发字节和延迟探测；后续心跳主循环会复用这些采集结果。
 
 第 3 阶段已接入注册和心跳主循环：启动后会向控制器注册，周期性上报状态，并把 `nodeId`、`relayId`、配置版本和最近状态保存到 `STATE_PATH`。
+
+第 4 阶段已加入 `netops` 网络操作封装，覆盖 `sysctl`、`ip route` 和 `nftables` 命令生成，并支持 dry-run 测试。
+
+第 5 阶段已加入 `reconciler`：心跳发现新配置后会校验配置，按 `sysctl -> nftables -> ip route` 顺序应用，并向控制器上报应用结果。`DRY_RUN=true` 时只生成命令，不修改本机网络。

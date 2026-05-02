@@ -536,7 +536,7 @@ go test ./...
 - 注册成功后立即保存 `relayId`、`nodeId`、`configVersion` 和 `lastRegisterAt`。
 - 心跳周期使用 `HEARTBEAT_INTERVAL_SECONDS`。
 - 心跳发现 `hasNewConfig=true` 或控制器配置版本大于本地版本时，agent 会拉取最新配置。
-- 第 3 阶段只拉取并记录新配置版本，不应用本机网络配置；拉取到新版本后标记 `nftApplied=false`、`routeApplied=false`，等待第 5 阶段 reconcile。
+- 第 3 阶段只拉取并记录新配置版本，不应用本机网络配置；第 5 阶段完成后，新配置会继续进入 reconcile 流程。
 - `STATE_PATH` 写入采用临时文件 + rename，避免异常退出留下半截 JSON。
 
 阶段 3 验收命令：
@@ -557,6 +557,26 @@ go test ./...
 - `internal/netops`
 - dry-run 测试。
 
+阶段 4 约定：
+
+- 所有系统命令都通过 `exec.CommandContext(name, args...)` 执行，不拼接 shell 字符串。
+- `netops.Command` 明确拆分 `Name`、`Args`、`Stdin`，其中 `nft -f -` 的规则脚本通过 `Stdin` 传入。
+- dry-run 使用 `DryRunRunner` 记录命令，不实际执行系统命令。
+- `sysctl` 第一版只封装 `sysctl -w key=value`。
+- `ip route` 第一版封装：
+  - `ip route show`
+  - `ip route replace <dst> [via <via>] [dev <dev>] [metric <metric>]`
+  - `ip route del <dst> [via <via>] [dev <dev>] [metric <metric>]`
+- `nftables` 第一版固定管理 `table ip relay_agent`，并生成独立 `postrouting` NAT chain。
+- NAT 第一版支持 `masquerade` 和 `snat`，规则注释统一使用 `relay-agent:<name>`。
+- 第 4 阶段只提供命令封装和 dry-run 验证，不主动应用控制器配置；配置校验和变更计划在第 5 阶段完成。
+
+阶段 4 验收命令：
+
+```bash
+go test ./...
+```
+
 ### 第 5 阶段：配置 reconcile
 
 - 定义目标配置结构。
@@ -570,6 +590,37 @@ go test ./...
 - `internal/reconciler`
 - 配置校验测试。
 - 应用计划测试。
+
+阶段 5 约定：
+
+- `internal/reconciler` 直接使用控制器下发的 `controller.RelayConfig` 作为目标配置。
+- 本地当前状态来自 `state.State`，主要比较 `configVersion`、`nftApplied`、`routeApplied`。
+- 如果目标配置版本小于本地已应用版本，且本地 `nftApplied=true`、`routeApplied=true`，则忽略旧配置。
+- 如果目标配置版本更新，或本地应用标记为 false，则执行 reconcile。
+- 配置校验规则：
+  - `version` 必须大于 `0`。
+  - sysctl key/value 不能为空。
+  - route `dst` 必须是合法 CIDR。
+  - route 必须至少设置 `via` 或 `dev`。
+  - NAT 第一版只支持 `masquerade` 和 `snat`。
+  - `snat` 必须设置 `toAddress`。
+- 应用顺序固定为：
+  1. `sysctl`
+  2. `nftables`
+  3. `ip route`
+- reconcile 成功后设置：
+  - `nftApplied=true`
+  - `routeApplied=true`
+  - `lastApplyMessage=applied successfully`
+- reconcile 失败时保留 pending 状态，下一轮心跳可继续重试。
+- service 在 reconcile 后调用 `POST /api/relays/{nodeId}/config-apply-result` 上报成功或失败。
+- `DRY_RUN=true` 时通过 `DryRunRunner` 生成命令但不修改本机网络，适合联调控制器和校验下发配置。
+
+阶段 5 验收命令：
+
+```bash
+go test ./...
+```
 
 ### 第 6 阶段：控制器侧改造
 

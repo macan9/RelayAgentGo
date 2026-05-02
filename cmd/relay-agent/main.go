@@ -11,6 +11,8 @@ import (
 	"relay-agent-go/internal/collector"
 	"relay-agent-go/internal/config"
 	"relay-agent-go/internal/controller"
+	"relay-agent-go/internal/netops"
+	"relay-agent-go/internal/reconciler"
 	"relay-agent-go/internal/service"
 	"relay-agent-go/internal/state"
 )
@@ -46,13 +48,23 @@ func main() {
 		PublicIPProbeURL:  cfg.PublicIPProbeURL,
 		LatencyProbeURL:   cfg.LatencyProbeURL,
 	})
+	var runner netops.Runner = netops.ExecRunner{}
+	if cfg.DryRun {
+		runner = &netops.DryRunRunner{}
+	}
+	reconcilerService := reconciler.New(
+		netops.NewSysctl(runner),
+		netops.NewRouteManager(runner),
+		netops.NewNFTManager(runner),
+		logger,
+	)
 	stateStore := state.NewStore(cfg.StatePath)
 	agentService := service.New(service.Config{
 		ZTNetworkID:       cfg.ZTNetworkID,
 		RelayName:         cfg.RelayName,
 		Version:           buildinfo.Version,
 		HeartbeatInterval: cfg.HeartbeatInterval,
-	}, controllerClient, metricsCollector, stateStore, logger)
+	}, controllerClient, metricsCollector, stateStore, reconcilerService, logger)
 
 	logger.Info(
 		"relay agent starting",

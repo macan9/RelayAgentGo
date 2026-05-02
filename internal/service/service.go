@@ -9,6 +9,7 @@ import (
 	"relay-agent-go/internal/buildinfo"
 	"relay-agent-go/internal/collector"
 	"relay-agent-go/internal/controller"
+	"relay-agent-go/internal/reconciler"
 	"relay-agent-go/internal/state"
 )
 
@@ -16,6 +17,7 @@ type Controller interface {
 	Register(context.Context, controller.RegisterRequest) (controller.RegisterResponse, error)
 	Heartbeat(context.Context, string, controller.HeartbeatRequest) (controller.HeartbeatResponse, error)
 	GetConfig(context.Context, string) (controller.RelayConfig, error)
+	ReportApplyResult(context.Context, string, controller.ApplyResultRequest) (controller.ApplyResultResponse, error)
 }
 
 type Collector interface {
@@ -25,6 +27,10 @@ type Collector interface {
 type StateStore interface {
 	Load() (state.State, error)
 	Save(state.State) error
+}
+
+type Reconciler interface {
+	Apply(context.Context, state.State, controller.RelayConfig) (state.State, reconciler.Outcome, error)
 }
 
 type Config struct {
@@ -40,10 +46,11 @@ type Service struct {
 	controller Controller
 	collector  Collector
 	store      StateStore
+	reconciler Reconciler
 	logger     *slog.Logger
 }
 
-func New(config Config, controllerClient Controller, metricsCollector Collector, store StateStore, logger *slog.Logger) *Service {
+func New(config Config, controllerClient Controller, metricsCollector Collector, store StateStore, reconciler Reconciler, logger *slog.Logger) *Service {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -55,6 +62,7 @@ func New(config Config, controllerClient Controller, metricsCollector Collector,
 		controller: controllerClient,
 		collector:  metricsCollector,
 		store:      store,
+		reconciler: reconciler,
 		logger:     logger,
 	}
 }
@@ -161,17 +169,36 @@ func (service *Service) heartbeat(ctx context.Context, current state.State) (sta
 	current.LastHeartbeatAt = now
 	current.LastControllerSeen = now
 
-	if response.HasNewConfig || response.ConfigVersion > current.ConfigVersion {
+	if response.HasNewConfig || response.ConfigVersion > current.ConfigVersion || !current.NFTApplied || !current.RouteApplied {
 		relayConfig, err := service.controller.GetConfig(ctx, current.NodeID)
 		if err != nil {
 			return current, fmt.Errorf("fetch relay config: %w", err)
 		}
-		if relayConfig.Version > current.ConfigVersion {
+		if relayConfig.Version > current.ConfigVersion || !current.NFTApplied || !current.RouteApplied {
 			current.ConfigVersion = relayConfig.Version
 			current.NFTApplied = false
 			current.RouteApplied = false
 			current.LastApplyMessage = "config fetched; reconcile pending"
 			service.logger.Info("new relay config fetched", "version", relayConfig.Version)
+
+			next, outcome, err := service.reconciler.Apply(ctx, current, relayConfig)
+			current = next
+			current.LastApplyMessage = outcome.Message
+
+			_, reportErr := service.controller.ReportApplyResult(ctx, current.NodeID, controller.ApplyResultRequest{
+				Version:       outcome.Version,
+				Success:       err == nil,
+				Message:       outcome.Message,
+				ChangedRoutes: outcome.ChangedRoutes,
+				ChangedRules:  outcome.ChangedRules,
+			})
+			if reportErr != nil {
+				service.logger.Error("report apply result failed", "error", reportErr)
+			}
+			if err != nil {
+				service.logger.Error("reconcile failed", "error", err, "version", relayConfig.Version)
+				return current, nil
+			}
 		}
 	}
 
