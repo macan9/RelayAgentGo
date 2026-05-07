@@ -10,6 +10,7 @@
 # Go build outputs
 bin/
 dist/
+.deploy-dist/
 tmp/
 coverage.out
 *.test

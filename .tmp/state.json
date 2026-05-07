@@ -1,0 +1,13 @@
+{
+  "relayId": "relay-relay-local-01",
+  "nodeId": "relay-local-01",
+  "ztNetworkId": "31756fbd6561cd52",
+  "configVersion": 3,
+  "nftApplied": true,
+  "routeApplied": true,
+  "lastRegisterAt": "2026-05-07T07:11:25.0323595Z",
+  "lastHeartbeatAt": "2026-05-07T08:53:45.1028532Z",
+  "lastApplyMessage": "applied successfully",
+  "lastControllerSeen": "2026-05-07T08:53:45.1028532Z",
+  "updatedAt": "2026-05-07T08:53:45.1028532Z"
+}

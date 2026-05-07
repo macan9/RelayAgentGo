@@ -6,6 +6,9 @@
 
 - [RelayAgentGo 技术方案与开发步骤](docs/relay-agent-implementation-plan.md)
 - [中继知识学习](docs/中继知识学习.md)
+- [项目进度看板](docs/progress.md)
+- [运维手册](docs/operations.md)
+- [第 6 阶段（Controller 改造）开工清单](docs/stage6-controller-kickoff.md)
 
 ## 核心链路
 
@@ -18,9 +21,17 @@ RelayAgentGo
   -> 实际转发由 Linux 内核完成
 ```
 
-## 下一步
+## 当前进度
 
-建议先按文档的第 0 到第 5 阶段实现 agent 本体闭环，再改造 `OwnZeroTierController` 增加 relay 注册、心跳和配置下发接口。
+当前已完成第 0 到第 5 阶段，`RelayAgentGo` 已具备：
+
+- 注册/心跳主循环
+- 本机指标采集
+- 配置拉取与校验
+- `sysctl -> nftables -> ip route` 的 reconcile 应用链路
+- dry-run 联调能力
+
+下一步进入第 6 阶段：在 `OwnZeroTierController` 落地 `/api/relays/*` 接口与数据模型，再进行第 7 阶段联调。
 
 ## 本地运行骨架
 
@@ -42,15 +53,10 @@ RELAY_AGENT_CONFIG=relay-agent.env go run ./cmd/relay-agent
 go test ./...
 ```
 
-当前入口会初始化 `OwnZeroTierController` 客户端，支持 Bearer Token、HTTP 超时和重试配置；真实注册和心跳主循环会在后续阶段接入。
-
-第 2 阶段已加入本机采集器，能采集 hostname、ZeroTier 网卡 IP、公网 IP 探测、load、内存、CPU 增量、网卡收发字节和延迟探测；后续心跳主循环会复用这些采集结果。
-
-第 3 阶段已接入注册和心跳主循环：启动后会向控制器注册，周期性上报状态，并把 `nodeId`、`relayId`、配置版本和最近状态保存到 `STATE_PATH`。
-
-第 4 阶段已加入 `netops` 网络操作封装，覆盖 `sysctl`、`ip route` 和 `nftables` 命令生成，并支持 dry-run 测试。
-
-第 5 阶段已加入 `reconciler`：心跳发现新配置后会校验配置，按 `sysctl -> nftables -> ip route` 顺序应用，并向控制器上报应用结果。`DRY_RUN=true` 时只生成命令，不修改本机网络。
+第 2 阶段完成：采集 hostname、ZeroTier 网卡 IP、公网 IP 探测、load、内存、CPU 增量、网卡收发字节和延迟探测。  
+第 3 阶段完成：接入注册与心跳主循环，状态落盘到 `STATE_PATH`。  
+第 4 阶段完成：`netops` 封装 `sysctl` / `ip route` / `nftables` 并支持 dry-run。  
+第 5 阶段完成：`reconciler` 支持配置校验、顺序应用、结果上报和失败重试。
 
 ## 线上联调模板
 

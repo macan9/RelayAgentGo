@@ -1,5 +1,12 @@
 # RelayAgentGo 技术方案与开发步骤
 
+## 当前状态（2026-05-07）
+
+- 第 0-5 阶段：已完成（代码与测试已落地）。
+- 第 6 阶段：进行中（控制器侧改造开工，见 `docs/stage6-controller-kickoff.md`）。
+- 第 7 阶段：未开始。
+- 第 8 阶段：部分完成（已有 service 文件，安装脚本待补）。
+
 ## 1. 目标定位
 
 `RelayAgentGo` 是部署在 Linux 中继节点上的轻量级代理服务。它不直接实现数据转发逻辑，数据面交给 Linux 内核完成；它负责把本机状态注册并上报给 `OwnZeroTierController`，再接收控制器下发的路由与 NAT 策略，最终落地到本机 `nftables` 和 `ip route`。
