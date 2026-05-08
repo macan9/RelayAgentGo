@@ -12,8 +12,8 @@ func TestLoadMissingReturnsDefaultState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load state: %v", err)
 	}
-	if !current.NFTApplied || !current.RouteApplied {
-		t.Fatalf("expected default applied flags to be true: %+v", current)
+	if current.NFTApplied || current.RouteApplied {
+		t.Fatalf("expected default applied flags to be false: %+v", current)
 	}
 }
 

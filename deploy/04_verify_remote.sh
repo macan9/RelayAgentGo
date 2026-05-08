@@ -36,7 +36,9 @@ systemctl is-active relay-agent
 journalctl -u relay-agent -n 80 --no-pager
 EOF
 
-if [[ -n "${CONTROLLER_BASE_URL:-}" && -n "${CONTROLLER_TOKEN:-}" && -n "${RELAY_NODE_ID:-}" ]]; then
+if [[ "${CONTROLLER_TOKEN:-}" == "change-me" ]]; then
+  echo "[WARN] skip controller api verification (CONTROLLER_TOKEN is placeholder: change-me)"
+elif [[ -n "${CONTROLLER_BASE_URL:-}" && -n "${CONTROLLER_TOKEN:-}" && -n "${RELAY_NODE_ID:-}" ]]; then
   echo "[INFO] checking relay record from controller api"
   curl -fsS \
     -H "Authorization: Bearer $CONTROLLER_TOKEN" \

@@ -36,8 +36,8 @@ func (store *Store) Load() (State, error) {
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return State{
-				NFTApplied:   true,
-				RouteApplied: true,
+				NFTApplied:   false,
+				RouteApplied: false,
 			}, nil
 		}
 		return State{}, fmt.Errorf("read state file %s: %w", store.path, err)

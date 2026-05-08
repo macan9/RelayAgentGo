@@ -133,6 +133,9 @@ func (service *Service) register(ctx context.Context, current state.State) (stat
 	if err != nil {
 		return current, fmt.Errorf("register relay: %w", err)
 	}
+	if response.HeartbeatIntervalSeconds > 0 {
+		service.config.HeartbeatInterval = time.Duration(response.HeartbeatIntervalSeconds) * time.Second
+	}
 
 	now := time.Now().UTC()
 	current.RelayID = response.RelayID
@@ -154,6 +157,7 @@ func (service *Service) register(ctx context.Context, current state.State) (stat
 		"nodeId", current.NodeID,
 		"ztNetworkId", current.ZTNetworkID,
 		"configVersion", current.ConfigVersion,
+		"heartbeatInterval", service.config.HeartbeatInterval.String(),
 	)
 
 	return current, nil
